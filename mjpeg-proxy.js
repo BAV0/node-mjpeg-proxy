@@ -36,7 +36,7 @@ function extractBoundary(contentType) {
   return contentType.substring(startIndex + 9, endIndex).replace(/"/gi,'').replace(/^\-\-/gi, '');
 }
 
-var MjpegProxy = exports.MjpegProxy = function(mjpegUrl) {
+exports.MjpegProxy = function(mjpegUrl) {
   var self = this;
 
   if (!mjpegUrl) throw new Error('Please provide a source MJPEG URL');
@@ -48,15 +48,16 @@ var MjpegProxy = exports.MjpegProxy = function(mjpegUrl) {
 
   self.boundary = null;
   self.globalMjpegResponse = null;
+  self.mjpegRequest = null;
 
   self.proxyRequest = function(req, res) {
 
     // There is already another client consuming the MJPEG response
-    if (self.audienceResponses.length > 0) {
+    if (self.mjpegRequest !== null) {
       self._newClient(req, res);
     } else {
       // Send source MJPEG request
-      var mjpegRequest = http.request(self.mjpegOptions, function(mjpegResponse) {
+      self.mjpegRequest = http.request(self.mjpegOptions, function(mjpegResponse) {
         // console.log('request');
         self.globalMjpegResponse = mjpegResponse;
         self.boundary = extractBoundary(mjpegResponse.headers['content-type']);
@@ -103,17 +104,31 @@ var MjpegProxy = exports.MjpegProxy = function(mjpegUrl) {
           for (var i = self.audienceResponses.length; i--;) {
             var res = self.audienceResponses[i];
             res.end();
+            cleanAudienceResponse(res);
           }
         });
         mjpegResponse.on('close', function () {
           // console.log("...close");
+          self.mjpegRequest = null;
         });
       });
 
-      mjpegRequest.on('error', function(e) {
+      self.mjpegRequest.on('error', function(e) {
         console.error('problem with request: ', e);
       });
-      mjpegRequest.end();
+      self.mjpegRequest.end();
+    }
+  };
+
+  function cleanAudienceResponse(res) {
+    self.audienceResponses.splice(self.audienceResponses.indexOf(res), 1);
+    if (self.newAudienceResponses.indexOf(res) >= 0) {
+      self.newAudienceResponses.splice(self.newAudienceResponses.indexOf(res), 1); // remove from new
+    }
+
+    if (self.audienceResponses.length == 0) {
+      self.mjpegRequest = null;
+      self.globalMjpegResponse.destroy();
     }
   }
 
@@ -131,14 +146,7 @@ var MjpegProxy = exports.MjpegProxy = function(mjpegUrl) {
     req.socket.on('close', function () {
       // console.log('exiting client!');
 
-      self.audienceResponses.splice(self.audienceResponses.indexOf(res), 1);
-      if (self.newAudienceResponses.indexOf(res) >= 0) {
-        self.newAudienceResponses.splice(self.newAudienceResponses.indexOf(res), 1); // remove from new
-      }
-
-      if (self.audienceResponses.length == 0) {
-        self.globalMjpegResponse.destroy();
-      }
+      cleanAudienceResponse(res);
     });
   }
-}
+};
