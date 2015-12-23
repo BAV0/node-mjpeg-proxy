@@ -57,7 +57,7 @@ exports.MjpegProxy = function(mjpegUrl) {
       self._newClient(req, res);
     } else {
       // Send source MJPEG request
-      self.mjpegRequest = http.request(self.mjpegOptions, function(mjpegResponse) {
+      var mjpegResponseHandler = function(mjpegResponse) {
         // console.log('request');
         self.globalMjpegResponse = mjpegResponse;
         self.boundary = extractBoundary(mjpegResponse.headers['content-type']);
@@ -111,10 +111,36 @@ exports.MjpegProxy = function(mjpegUrl) {
           // console.log("...close");
           self.mjpegRequest = null;
         });
-      });
+      };
+      self.mjpegRequest = http.request(self.mjpegOptions, mjpegResponseHandler);
 
       self.mjpegRequest.on('error', function(e) {
         console.error('problem with request: ', e);
+        self.mjpegRequest = null;
+        self.retryCount = 0;
+        var retry = function () {
+          if (self.mjpegRequest === null) {
+            console.log('Retrying request');
+            self.retryCount++;
+            self.mjpegRequest = http.request(self.mjpegOptions, mjpegResponseHandler);
+
+            self.mjpegRequest.on('error', function (error) {
+              self.mjpegRequest = null;
+              const maxRetries = 10;
+              if (self.retryCount < maxRetries) {
+                setTimeout(retry, 500);
+              } else {
+                console.log('Failed after', maxRetries, 'tries close all clients', error);
+                for (var i = self.audienceResponses.length; i--;) {
+                  var res = self.audienceResponses[i];
+                  res.end();
+                  cleanAudienceResponse(res);
+                }
+              }
+            })
+          }
+        };
+        setTimeout(retry, 500);
       });
       self.mjpegRequest.end();
     }
@@ -128,7 +154,9 @@ exports.MjpegProxy = function(mjpegUrl) {
 
     if (self.audienceResponses.length == 0) {
       self.mjpegRequest = null;
-      self.globalMjpegResponse.destroy();
+      if (self.globalMjpegResponse) {
+        self.globalMjpegResponse.destroy();
+      }
     }
   }
 
