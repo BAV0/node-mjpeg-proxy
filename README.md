@@ -30,7 +30,7 @@ var MjpegProxy = require('mjpeg-proxy').MjpegProxy;
 var express = require('express');
 var app = express();
 
-app.get('/index1.jpg', new MjpegProxy('http://admin:admin@192.168.1.109/cgi/mjpg/mjpg.cgi').proxyRequest);
+app.get('/index1.jpg', new MjpegProxy({mjpegUrl: 'http://admin:admin@192.168.1.109/cgi/mjpg/mjpg.cgi'}).proxyRequest);
 app.listen(8080);
 ```
 
@@ -42,10 +42,16 @@ API
 ### MjpegProxy
 
 ``` js
-var mjpegProxy = new MjpegProxy(mjpegUrl);
+var mjpegProxy = new MjpegProxy({
+  mjpegUrl: mjpegUrl,
+  forceHttps: true
+});
 ``` 
 
 Returns: a `MjpegProxy` instance for the MJPEG stream at `mjpegUrl` URL.
+#### options
+* `mjpegUrl` the url that you want to proxy
+* `forceHttps` forces the proxy to use https protocol instead of http.
 
 Credits
 -------
@@ -54,6 +60,10 @@ Original prototype version from:
 
   * Phil Rene ([philrene](http://github.com/philrene))
   * Chris Chua ([chrisirhc](http://github.com/chrisirhc))
+
+Changed by:
+* Jeoffrey Bakker ([jeoffreybakker](http://github.com/jeoffreybakker))
+* Maurits Lourens ([mslourens](http://github.com/mslourens))
 
 License
 -------

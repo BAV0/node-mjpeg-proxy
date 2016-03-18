@@ -2,18 +2,19 @@
   "name": "mjpeg-proxy",
   "version": "0.1.0",
   "description": "MJPEG Proxy",
-  "author": { 
-    "name" : "Georges-Etienne Legendre",
+  "author": {
+    "name": "Georges-Etienne Legendre",
     "email": "legege@legege.com",
     "url": "http://legege.com"
   },
-  "repository": { 
+  "repository": {
     "type": "git",
     "url": "git://github.com/legege/node-mjpeg-proxy.git"
   },
   "main": "./mjpeg-proxy",
   "dependencies": {
-    "buffertools": "^2.1.2"
+    "buffertools": "^2.1.2",
+    "https": "^1.0.0"
   },
   "devDependencies": {
     "express": "3.1.x"
