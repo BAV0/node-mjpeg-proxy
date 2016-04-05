@@ -161,20 +161,22 @@ exports.MjpegProxy = function(mjpegUrl) {
   }
 
   self._newClient = function(req, res) {
-    res.writeHead(200, {
-      'Expires': 'Mon, 01 Jul 1980 00:00:00 GMT',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Content-Type': 'multipart/x-mixed-replace;boundary=' + self.boundary
-    });
+    if (res.headersSent == false) {
+      res.writeHead (200, {
+        'Expires': 'Mon, 01 Jul 1980 00:00:00 GMT',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Content-Type': 'multipart/x-mixed-replace;boundary=' + self.boundary
+      });
 
-    self.audienceResponses.push(res);
-    self.newAudienceResponses.push(res);
+      self.audienceResponses.push (res);
+      self.newAudienceResponses.push (res);
 
-    req.socket.on('close', function () {
-      // console.log('exiting client!');
+      req.socket.on ('close', function () {
+        // console.log('exiting client!');
 
-      cleanAudienceResponse(res);
-    });
+        cleanAudienceResponse (res);
+      });
+    }
   }
 };
