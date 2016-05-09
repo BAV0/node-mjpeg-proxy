@@ -21,6 +21,7 @@
 
 var url = require('url');
 var http = require('http');
+var https = require('https');
 
 var buffertools = require('buffertools');
 
@@ -36,12 +37,12 @@ function extractBoundary(contentType) {
   return contentType.substring(startIndex + 9, endIndex).replace(/"/gi,'').replace(/^\-\-/gi, '');
 }
 
-exports.MjpegProxy = function(mjpegUrl) {
+exports.MjpegProxy = function(options) {
   var self = this;
+  self.options = options || {};
+  if (!self.options.mjpegUrl) throw new Error('Please provide a source MJPEG URL');
 
-  if (!mjpegUrl) throw new Error('Please provide a source MJPEG URL');
-
-  self.mjpegOptions = url.parse(mjpegUrl);
+  self.mjpegOptions = url.parse(self.options.mjpegUrl);
 
   self.audienceResponses = [];
   self.newAudienceResponses = [];
@@ -57,7 +58,7 @@ exports.MjpegProxy = function(mjpegUrl) {
       self._newClient(req, res);
     } else {
       // Send source MJPEG request
-      var mjpegResponseHandler = function(mjpegResponse) {
+      self.mjpegResponseHandler = function(mjpegResponse) {
         // console.log('request');
         self.globalMjpegResponse = mjpegResponse;
         self.boundary = extractBoundary(mjpegResponse.headers['content-type']);
@@ -112,8 +113,9 @@ exports.MjpegProxy = function(mjpegUrl) {
           self.mjpegRequest = null;
         });
       };
-      self.mjpegRequest = http.request(self.mjpegOptions, mjpegResponseHandler);
 
+      self.mjpegRequest = createRequest();
+      
       self.mjpegRequest.on('error', function(e) {
         console.error('problem with request: ', e);
         self.mjpegRequest = null;
@@ -122,7 +124,7 @@ exports.MjpegProxy = function(mjpegUrl) {
           if (self.mjpegRequest === null) {
             console.log('Retrying request');
             self.retryCount++;
-            self.mjpegRequest = http.request(self.mjpegOptions, mjpegResponseHandler);
+            self.mjpegRequest = createRequest();
 
             self.mjpegRequest.on('error', function (error) {
               self.mjpegRequest = null;
@@ -145,6 +147,14 @@ exports.MjpegProxy = function(mjpegUrl) {
       self.mjpegRequest.end();
     }
   };
+
+  function createRequest () {
+    if (self.options.forceHttps === true) {
+      return https.request(self.mjpegOptions, self.mjpegResponseHandler);
+    } else {
+      return http.request(self.mjpegOptions, self.mjpegResponseHandler);
+    }
+  }
 
   function cleanAudienceResponse(res) {
     self.audienceResponses.splice(self.audienceResponses.indexOf(res), 1);

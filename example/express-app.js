@@ -31,8 +31,8 @@ var cam2 = "http://admin:@192.168.124.32/videostream.cgi";
 app.set("view options", {layout: false});
 app.use(express.static(__dirname + '/public'));
 
-app.get('/index1.jpg', new MjpegProxy(cam1).proxyRequest);
-app.get('/index2.jpg', new MjpegProxy(cam2).proxyRequest);
+app.get('/index1.jpg', new MjpegProxy({mjpegUrl: cam1}).proxyRequest);
+app.get('/index2.jpg', new MjpegProxy({mjpegUrl: cam2}).proxyRequest);
 
 app.listen(HTTP_PORT);
 
