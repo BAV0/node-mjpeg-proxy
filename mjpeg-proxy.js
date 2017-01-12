@@ -25,6 +25,10 @@ var https = require('https');
 
 var buffertools = require('buffertools');
 
+var debug = require('debug')('mjpeg-proxy');
+var debugClient = require('debug')('mjpeg-proxy:client');
+var debugMjpeg = require('debug')('mjpeg-proxy:mjpeg');
+
 function extractBoundary(contentType) {
   var startIndex = contentType.indexOf('boundary=');
   var endIndex = contentType.indexOf(';', startIndex);
@@ -52,7 +56,7 @@ exports.MjpegProxy = function(options) {
   self.mjpegRequest = null;
 
   self.proxyRequest = function(req, res) {
-
+    debugClient('New proxy request received');
     // There is already another client consuming the MJPEG response
     if (self.mjpegRequest !== null) {
       self._newClient(req, res);
@@ -92,6 +96,7 @@ exports.MjpegProxy = function(options) {
             if (self.newAudienceResponses.indexOf(res) >= 0) {
               var p = buffertools.indexOf(chunk, '--' + self.boundary);
               if (p >= 0) {
+                debugClient('Sending first image for client');
                 res.write(chunk.slice(p));
                 self.newAudienceResponses.splice(self.newAudienceResponses.indexOf(res), 1); // remove from new
               }
@@ -101,7 +106,7 @@ exports.MjpegProxy = function(options) {
           }
         });
         mjpegResponse.on('end', function () {
-          // console.log("...end");
+          debugMjpeg('MJPEG Response has been ended');
           for (var i = self.audienceResponses.length; i--;) {
             var res = self.audienceResponses[i];
             res.end();
@@ -109,7 +114,7 @@ exports.MjpegProxy = function(options) {
           }
         });
         mjpegResponse.on('close', function () {
-          // console.log("...close");
+          debugMjpeg('Response has been closed');
           self.mjpegRequest = null;
         });
       };
@@ -117,11 +122,13 @@ exports.MjpegProxy = function(options) {
       self.mjpegRequest = createRequest();
       
       self.mjpegRequest.on('error', function(e) {
-        console.error('problem with request: ', e);
+        debugMjpeg('Error with request: %s', e.message);
+        // console.error('problem with request: ', e);
         self.mjpegRequest = null;
         self.retryCount = 0;
         var retry = function () {
           if (self.mjpegRequest === null) {
+            debugMjpeg('Retry MJPEG request')
             console.log('Retrying request');
             self.retryCount++;
             self.mjpegRequest = createRequest();
@@ -133,6 +140,7 @@ exports.MjpegProxy = function(options) {
                 setTimeout(retry, 500);
               } else {
                 console.log('Failed after', maxRetries, 'tries close all clients', error);
+                debugMjpeg('Failed with error \'%s\' after %d tries close all clients', error, maxRetries);
                 for (var i = self.audienceResponses.length; i--;) {
                   var res = self.audienceResponses[i];
                   res.end();
@@ -149,6 +157,7 @@ exports.MjpegProxy = function(options) {
   };
 
   function createRequest () {
+    debugMjpeg('Send MJPEG request');
     if (self.options.forceHttps === true) {
       return https.request(self.mjpegOptions, self.mjpegResponseHandler);
     } else {
@@ -163,8 +172,10 @@ exports.MjpegProxy = function(options) {
     }
 
     if (self.audienceResponses.length == 0) {
+      debugClient('No listening clients');
       self.mjpegRequest = null;
       if (self.globalMjpegResponse) {
+        debugMjpeg('Destroying MPJEG response');
         self.globalMjpegResponse.destroy();
       }
     }
@@ -181,10 +192,10 @@ exports.MjpegProxy = function(options) {
 
       self.audienceResponses.push (res);
       self.newAudienceResponses.push (res);
+      debugClient('Total clients %d with %d', self.audienceResponses.length, self.newAudienceResponses.length);
 
       req.socket.on ('close', function () {
-        // console.log('exiting client!');
-
+        debugClient('Client response is closed');
         cleanAudienceResponse (res);
       });
     }
