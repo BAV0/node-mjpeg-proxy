@@ -128,7 +128,7 @@ exports.MjpegProxy = function(options) {
         self.retryCount = 0;
         var retry = function () {
           if (self.mjpegRequest === null) {
-            debugMjpeg('Retry MJPEG request')
+            debugMjpeg('Retry MJPEG request');
             console.log('Retrying request');
             self.retryCount++;
             self.mjpegRequest = createRequest();
@@ -166,12 +166,17 @@ exports.MjpegProxy = function(options) {
   }
 
   function cleanAudienceResponse(res) {
-    self.audienceResponses.splice(self.audienceResponses.indexOf(res), 1);
+    debugClient('Clean audience responses total clients %d with %d', self.audienceResponses.length, self.newAudienceResponses.length);
+    var indexOf = self.audienceResponses.indexOf(res);
+
+    if (indexOf >= 0) {
+     self.audienceResponses.splice(indexOf, 1);
+    }
     if (self.newAudienceResponses.indexOf(res) >= 0) {
       self.newAudienceResponses.splice(self.newAudienceResponses.indexOf(res), 1); // remove from new
     }
 
-    if (self.audienceResponses.length == 0) {
+    if (self.audienceResponses.length === 0) {
       debugClient('No listening clients');
       self.mjpegRequest = null;
       if (self.globalMjpegResponse) {
@@ -182,7 +187,7 @@ exports.MjpegProxy = function(options) {
   }
 
   self._newClient = function(req, res) {
-    if (res.headersSent == false) {
+    if (res.headersSent === false) {
       res.writeHead (200, {
         'Expires': 'Mon, 01 Jul 1980 00:00:00 GMT',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -194,8 +199,8 @@ exports.MjpegProxy = function(options) {
       self.newAudienceResponses.push (res);
       debugClient('Total clients %d with %d', self.audienceResponses.length, self.newAudienceResponses.length);
 
-      req.socket.on ('close', function () {
-        debugClient('Client response is closed');
+      req.on ('close', function () {
+        debugClient('Client request is closed');
         cleanAudienceResponse (res);
       });
     }
