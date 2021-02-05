@@ -1,25 +1,33 @@
 {
   "name": "mjpeg-proxy",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MJPEG Proxy",
   "author": {
-    "name": "Georges-Etienne Legendre",
-    "email": "legege@legege.com",
-    "url": "http://legege.com"
+    "name": "Bavo Luysterborg",
+    "email": "bavo@live.be",
+    "url": "https://bav0.com"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/legege/node-mjpeg-proxy.git"
+    "url": "git://github.com/bav0/node-mjpeg-proxy.git"
   },
   "main": "./mjpeg-proxy",
   "dependencies": {
-    "debug": "^2.2.0",
-    "https": "^1.0.0"
+    "debug": "^2.2.0"
   },
   "devDependencies": {
-    "express": "3.1.x"
+    "eslint": "^7.2.0",
+    "eslint-config-airbnb": "^18.2.1",
+    "eslint-config-prettier": "^7.2.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-jsx-a11y": "^6.4.1",
+    "eslint-plugin-prettier": "^3.3.1",
+    "eslint-plugin-react": "^7.21.5",
+    "eslint-plugin-react-hooks": "^1.7.0",
+    "express": "^4.17.1",
+    "prettier": "^2.2.1"
   },
   "engines": {
-    "node": ">=0.8.0"
+    "node": ">=14.0.0"
   }
 }
